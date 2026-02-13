@@ -33,20 +33,18 @@ class Buffer:
 
 
     def calculate_rtg(self):
-        #rewards = torch.tensor(self.rewards, dtype=torch.float32)
-        rtg = []
-        rewards_calculation = 0
-        for i in range(len(self.rewards)):
-            rewards_calculation += self.rewards[i] * self.gamma**i
-            rtg.append(rewards_calculation)
-
-        rtg = torch.tensor(rtg, dtype=torch.float32)
-        self.rtg = rtg
-        # rewardsToGo = a tensor
-        return rtg
+        rtg = 0
+        rtgArray = []
+        for reward in reversed(self.rewards):
+            rtg = reward + gamma * rtg
+            rtgArray.append(rtg)
+        rtgArray.reverse()
+        rtgTensor = torch.tensor(rtgArray, dtype=torch.float32)
+        return rtgTensor
 
     def calculate_advantages(self):
          # A = rewardsToGo - values
         values = torch.tensor(self.values, dtype=torch.float32)
-        advantages = self.rtg - values
+        rtg = self.calculate_rtg()
+        advantages = rtg - values
         return advantages
