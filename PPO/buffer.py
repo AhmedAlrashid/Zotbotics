@@ -6,7 +6,8 @@ This will be in charge of step 4 and 5
 import torch
 import torch.nn as nn
 import numpy as np
-import Actor
+from Actor import Actor
+from critic import Critic
 
 class Buffer:
     def __init__(self, gamma = 0.99, batch_size = 4):
@@ -19,6 +20,8 @@ class Buffer:
         self.rtg = None
         self.gamma = gamma
         self.current_state = None
+        self.actor = Actor()
+        self.critic = Critic()
         self.batch_size = batch_size # We can change the value of batch size if it makes it more efficient
 
     def store(self, state, action, reward, logProb, value):
@@ -30,9 +33,17 @@ class Buffer:
         
 
     def sample(self):
-        data = [i for i in range(12)]
-        selected_motors = np.random.choice(data, self.batch_size)
-        return selected_motors
+        dist = self.actor(self.current_state)
+        value = self.critic(self.current_state)
+        all_actions = dist.sample(self.batch_size)
+        
+        initial_reward = 0
+        for action in all_actions:
+            self.store(self.current_state, action, initial_reward, dist[action], value)
+
+
+
+
         
 
 
