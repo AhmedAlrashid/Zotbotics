@@ -36,8 +36,8 @@ class Buffer:
         dist = self.actor(self.current_state)
         value = self.critic(self.current_state)
         all_actions = dist.sample(self.batch_size)
-        
-        initial_reward = 0
+
+        initial_reward = 0 #I'm not sure how to find this value
         for action in all_actions:
             self.store(self.current_state, action, initial_reward, dist[action], value)
 
