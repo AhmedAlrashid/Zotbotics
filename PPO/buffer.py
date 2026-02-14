@@ -6,9 +6,10 @@ This will be in charge of step 4 and 5
 import torch
 import torch.nn as nn
 import numpy as np
+import Actor
 
 class Buffer:
-    def __init__(self, gamma = 0.99, batch_size = 12):
+    def __init__(self, gamma = 0.99, batch_size = 4):
         # gamma is discount factor
         self.states = []
         self.actions = []
@@ -18,7 +19,7 @@ class Buffer:
         self.rtg = None
         self.gamma = gamma
         self.current_state = None
-        self.actor = Actor()
+        self.batch_size = batch_size # We can change the value of batch size if it makes it more efficient
 
     def store(self, state, action, reward, logProb, value):
         self.states.append(state)
@@ -29,6 +30,9 @@ class Buffer:
         
 
     def sample(self):
+        data = [i for i in range(12)]
+        selected_motors = np.random.choice(data, self.batch_size)
+        return selected_motors
         
 
 
@@ -36,7 +40,7 @@ class Buffer:
         rtg = 0
         rtgArray = []
         for reward in reversed(self.rewards):
-            rtg = reward + gamma * rtg
+            rtg = reward + self.gamma * rtg
             rtgArray.append(rtg)
         rtgArray.reverse()
         rtgTensor = torch.tensor(rtgArray, dtype=torch.float32)
