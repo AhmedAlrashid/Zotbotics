@@ -42,11 +42,6 @@ class Buffer:
             self.store(self.current_state, action, initial_reward, dist[action], value)
 
 
-
-
-        
-
-
     def calculate_rtg(self):
         rtg = 0
         rtgArray = []
