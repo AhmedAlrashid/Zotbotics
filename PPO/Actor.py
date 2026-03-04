@@ -12,6 +12,7 @@ and 12 ouput nodes"""
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.distributions import Normal
 
 """I believe 256 is efficient here but if you guys like feel free to amplify by another power of two
 or so if the agent is failing to learn even for the simplest tasks."""
@@ -32,10 +33,21 @@ class Actor(nn.Module):
             nn.Tanh() # --> You can also use nn.Softmax() here, but I think nn.Tanh() is better for continuous actions (efficient for servos).
         )
         
+        # Add log_std parameter for action distribution
+        self.log_std = nn.Parameter(torch.zeros(out_dim))
+        
         self.optimizer = optim.Adam(self.parameters(), lr = lr) # Update the weights with the learning rate.
 
     def forward(self, state): # Passes a state to get an action distribution.
-        return self.network(state)
+        mean = self.network(state)
+        std = torch.exp(self.log_std)
+        return Normal(mean, std)
+    
+    def get_action(self, state):
+        dist = self.forward(state)
+        action = dist.sample()
+        log_prob = dist.log_prob(action).sum(dim=-1)
+        return action, log_prob
     
     def update(self, loss): # Updates the Actor network.
         self.optimizer.zero_grad()

@@ -30,27 +30,74 @@ class Buffer:
         self.rewards.append(reward)
         self.logProbs.append(logProb)
         self.values.append(value)
+        # Invalidate cached rtg when new data added
+        self.rtg = None
         
+    def get_all_data(self):
+        """Return all stored data as tensors for PPO update"""
+        states = torch.tensor(np.array(self.states), dtype=torch.float32)
+        actions = torch.tensor(np.array(self.actions), dtype=torch.float32)
+        old_log_probs = torch.tensor(self.logProbs, dtype=torch.float32)
+        advantages = self.calculate_advantages()
+        returns = self.calculate_rtg()
+        return states, actions, old_log_probs, advantages, returns
+    
+    def get_batches(self):
+        """Yield mini-batches for more stable training - OPTIMIZED"""
+        total_size = len(self.states)
+        indices = torch.randperm(total_size)
+        
+        # Convert lists to numpy arrays ONCE (much faster)
+        states_array = np.array(self.states)
+        actions_array = np.array(self.actions)
+        logprobs_array = np.array(self.logProbs)
+        
+        # Pre-calculate advantages and returns
+        advantages = self.calculate_advantages()
+        returns = self.calculate_rtg()
+        
+        for start in range(0, total_size, self.batch_size):
+            end = min(start + self.batch_size, total_size)
+            batch_indices = indices[start:end]
+            
+            # Use numpy indexing then convert to tensor (MUCH faster)
+            batch_states = torch.tensor(states_array[batch_indices], dtype=torch.float32)
+            batch_actions = torch.tensor(actions_array[batch_indices], dtype=torch.float32)
+            batch_old_log_probs = torch.tensor(logprobs_array[batch_indices], dtype=torch.float32)
+            batch_advantages = advantages[batch_indices]
+            batch_returns = returns[batch_indices]
+            
+            yield batch_states, batch_actions, batch_old_log_probs, batch_advantages, batch_returns
+
+    def clear(self):
+        """Clear all stored data for next collection phase"""
+        self.states.clear()
+        self.actions.clear()
+        self.rewards.clear()
+        self.logProbs.clear()
+        self.values.clear()
+        self.rtg = None
+        self.current_state = None
 
     def sample(self):
-        dist = self.actor(self.current_state)
-        value = self.critic(self.current_state)
-        all_actions = dist.sample(self.batch_size)
-
-        initial_reward = 0 #I'm not sure how to find this value
-        for action in all_actions:
-            self.store(self.current_state, action, initial_reward, dist[action], value)
+        # Legacy method - PPO doesn't use random sampling
+        # Keeping for compatibility
+        pass
 
 
     def calculate_rtg(self):
+        # Use cached version if available for efficiency
+        if self.rtg is not None:
+            return self.rtg
+            
         rtg = 0
         rtgArray = []
         for reward in reversed(self.rewards):
             rtg = reward + self.gamma * rtg
             rtgArray.append(rtg)
         rtgArray.reverse()
-        rtgTensor = torch.tensor(rtgArray, dtype=torch.float32)
-        return rtgTensor
+        self.rtg = torch.tensor(rtgArray, dtype=torch.float32)
+        return self.rtg
 
     def calculate_advantages(self):
          # A = rewardsToGo - values
