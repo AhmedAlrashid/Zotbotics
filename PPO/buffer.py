@@ -6,8 +6,6 @@ This will be in charge of step 4 and 5
 import torch
 import torch.nn as nn
 import numpy as np
-from Actor import Actor
-from critic import Critic
 
 class Buffer:
     def __init__(self, gamma = 0.99, batch_size = 4):
@@ -20,8 +18,6 @@ class Buffer:
         self.rtg = None
         self.gamma = gamma
         self.current_state = None
-        self.actor = Actor()
-        self.critic = Critic()
         self.batch_size = batch_size # We can change the value of batch size if it makes it more efficient
 
     def store(self, state, action, reward, logProb, value):
